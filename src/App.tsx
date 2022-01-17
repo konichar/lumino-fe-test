@@ -1,8 +1,13 @@
-import Button from "@material-ui/core/Button";
-import Card from "@material-ui/core/Card";
+// import Button from "@material-ui/core/Button";
 import { makeStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
+import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Button, Card, Stack } from '@mui/material';
 import React, { useEffect, useState } from "react";
+import debouce from 'lodash.debounce';
+import DateRangePicker, { DateRange } from '@mui/lab/DateRangePicker';
+import AdapterDateFns from '@mui/lab/AdapterDateFns';
+import LocalizationProvider from '@mui/lab/LocalizationProvider';
+
 interface ProjectItem {
   creationDate: any;
   projectName: any;
@@ -26,6 +31,7 @@ const useCardStyles = makeStyles({
   root: {
     width: 350,
     margin: 10,
+    padding: 20,
   },
   title: {
     fontSize: 14,
@@ -62,7 +68,9 @@ const ProjectCard: React.FC<CardProps> = ({ date, name, status }) => {
 
 function App() {
   const [projects, setProjects] = useState<ProjectItem[]>([]);
-  // const [sortedField, setSortedField] = useState<string>("");
+  const [search, setSearch] = useState<string>("");
+  const [status, setStatus] = useState<string>("");
+  const [startDate, setStartDate] = useState<DateRange<Date>>([null, null]);
   // let sortedProjects = [...projects];
 
   const classes = useStyles();
@@ -80,17 +88,16 @@ function App() {
   const fetchProjects = async () => {
     const res = await fetch("http://localhost:3004/projects");
     const data = await res.json();
-
     return data;
   };
 
   function handleChange(sortedType: "earliest" | "latest") {
     const sorted = [...projects].sort((a, b) => {
       let date1 = new Date(a.creationDate);
-      let date2 = b.creationDate;
+      let date2 = new Date(b.creationDate);
 
       if (sortedType === "earliest") {
-        return new Date(date1).getTime() - date2.getTime();
+        return date1.getTime() - date2.getTime();
       } else if (sortedType === "latest") {
         return date2.getTime() - date1.getTime();
       } else {
@@ -100,10 +107,34 @@ function App() {
     setProjects(sorted);
   }
 
+  // chaining js search and status filters 
+  const filteredProjects = projects
+    .filter(project => {
+      return project?.projectName?.toLowerCase().indexOf(search.toLowerCase()) !== -1;
+    })
+    .filter(project => {
+      return project?.status === status || status === "";
+    })
+    .filter(project => {
+      if (startDate[0] && startDate[1]) {
+        return new Date(project.creationDate) >= startDate[0] && new Date(project.creationDate) <= startDate[1]
+      }
+      return true;
+    })
+
+  const handleSearch = debouce(e => {
+    setSearch(e.target.value);
+    // Fire API call or Comments manipulation on client end side
+  }, 1000);
+
+  const handleStatus = (event: any) => {
+    setStatus(event.target.value as string);
+  };
+
   // render App
   return (
     <div className="App">
-      <div className="buttons-menu">
+      <Stack direction="row" justifyContent={"center"} spacing={4} marginTop={4} marginBottom={2} sx={{ paddingX: 14 }}>
         <Button
           className={classes.root}
           variant="contained"
@@ -112,6 +143,45 @@ function App() {
         >
           Earliest
         </Button>
+
+        <TextField
+          onChange={(e) => handleSearch(e)}
+          id="outlined-basic" label="Search" variant="outlined" />
+        <FormControl sx={{ width: 200 }}>
+          <InputLabel id="demo-simple-select-label">Status</InputLabel>
+          <Select
+            labelId="demo-simple-select-label"
+            id="demo-simple-select"
+            variant="outlined"
+            value={status}
+            label="Status"
+            onChange={(e) => handleStatus(e)}
+          >
+            <MenuItem value={""}>All</MenuItem>
+            <MenuItem value={"inProgress"}>In progress</MenuItem>
+            <MenuItem value={"won"}>Won</MenuItem>
+            <MenuItem value={"lost"}>Lost</MenuItem>
+          </Select>
+        </FormControl>
+
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <DateRangePicker
+            startText="from"
+            endText="to"
+            value={startDate}
+            onChange={(newValue) => {
+              setStartDate(newValue);
+            }}
+            renderInput={(startProps, endProps) => (
+              <React.Fragment>
+                <TextField {...startProps} />
+                <Box sx={{ mx: 2 }}> to </Box>
+                <TextField {...endProps} />
+              </React.Fragment>
+            )}
+          />
+        </LocalizationProvider>
+
         <Button
           className={classes.root}
           variant="contained"
@@ -120,11 +190,13 @@ function App() {
         >
           Latest
         </Button>
-      </div>
+      </Stack>
+
       <div className="projects-content">
-        {projects.map((project) => (
+        {filteredProjects.map((project, index) => (
           <ProjectCard
-            key={project.id}
+            // made the key more unique "id + projectName" to avoid unneccesary react re-render
+            key={project.id + index}
             date={project.creationDate}
             name={project.projectName}
             status={project.status}
