@@ -1,4 +1,3 @@
-// import Button from "@material-ui/core/Button";
 import { makeStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
 import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Button, Card, Stack } from '@mui/material';
@@ -7,7 +6,6 @@ import debouce from 'lodash.debounce';
 import DateRangePicker, { DateRange } from '@mui/lab/DateRangePicker';
 import AdapterDateFns from '@mui/lab/AdapterDateFns';
 import LocalizationProvider from '@mui/lab/LocalizationProvider';
-
 interface ProjectItem {
   creationDate: any;
   projectName: any;
@@ -107,20 +105,16 @@ function App() {
     setProjects(sorted);
   }
 
-  // chaining js search and status filters 
+  // chaining jsfilters 
   const filteredProjects = projects
+    // Search filter
     .filter(project => {
-      return project?.projectName?.toLowerCase().indexOf(search.toLowerCase()) !== -1;
+      let statusfilter = (project?.status === status || status === "")
+      let searchfilter = (project?.projectName?.toLowerCase().indexOf(search.toLowerCase()) !== -1)
+      let dateFilter = (startDate[0] && startDate[1]) ? (new Date(project.creationDate) >= startDate[0] && new Date(project.creationDate) <= startDate[1]) : true
+      return searchfilter && statusfilter && dateFilter
     })
-    .filter(project => {
-      return project?.status === status || status === "";
-    })
-    .filter(project => {
-      if (startDate[0] && startDate[1]) {
-        return new Date(project.creationDate) >= startDate[0] && new Date(project.creationDate) <= startDate[1]
-      }
-      return true;
-    })
+
 
   const handleSearch = debouce(e => {
     setSearch(e.target.value);
@@ -195,8 +189,8 @@ function App() {
       <div className="projects-content">
         {filteredProjects.map((project, index) => (
           <ProjectCard
-            // made the key more unique "id + projectName" to avoid unneccesary react re-render
-            key={project.id + index}
+            // the data from the api is comming with duplicate ids could not use for keys
+            key={index}
             date={project.creationDate}
             name={project.projectName}
             status={project.status}
