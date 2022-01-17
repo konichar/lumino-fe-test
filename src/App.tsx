@@ -1,6 +1,6 @@
 import { makeStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
-import { Box, TextField, FormControl, InputLabel, Select, MenuItem, Button, Card, Stack } from '@mui/material';
+import { Box, TextField, FormControl, InputLabel, Select, SelectChangeEvent, MenuItem, Button, Card, Stack } from '@mui/material';
 import React, { useEffect, useState } from "react";
 import debouce from 'lodash.debounce';
 import DateRangePicker, { DateRange } from '@mui/lab/DateRangePicker';
@@ -121,7 +121,7 @@ function App() {
     // Fire API call or Comments manipulation on client end side
   }, 1000);
 
-  const handleStatus = (event: any) => {
+  const handleStatus = (event: SelectChangeEvent) => {
     setStatus(event.target.value as string);
   };
 
